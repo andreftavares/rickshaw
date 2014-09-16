@@ -228,6 +228,10 @@ Rickshaw.Graph.HoverDetail = Rickshaw.Class.create({
 		}
 	},
 
+	destroy: function() {
+		this._removeListeners();
+	},
+
 	_calcLayoutError: function(alignables) {
 		// Layout error is calculated as the number of linear pixels by which
 		// an alignable extends past the left or right edge of the parent.
@@ -253,25 +257,42 @@ Rickshaw.Graph.HoverDetail = Rickshaw.Class.create({
 
 	_addListeners: function() {
 
+		// Keep reference for later removal.
+		this.mousemoveListener = function(e) {
+			this.visible = true;
+			this.update(e);
+		}.bind(this);
+
+		// Add listener.
 		this.graph.element.addEventListener(
 			'mousemove',
-			function(e) {
-				this.visible = true;
-				this.update(e);
-			}.bind(this),
+			this.mousemoveListener,
 			false
 		);
 
 		this.graph.onUpdate( function() { this.update() }.bind(this) );
 
+		// Keep reference for later removal.
+		this.mouseoutListener = function(e) {
+			if (e.relatedTarget && !(e.relatedTarget.compareDocumentPosition(this.graph.element) & Node.DOCUMENT_POSITION_CONTAINS)) {
+				this.hide();
+			}
+		}.bind(this);
+
+		// Add listener.
 		this.graph.element.addEventListener(
 			'mouseout',
-			function(e) {
-				if (e.relatedTarget && !(e.relatedTarget.compareDocumentPosition(this.graph.element) & Node.DOCUMENT_POSITION_CONTAINS)) {
-					this.hide();
-				}
-			}.bind(this),
+			this.mouseoutListener,
 			false
 		);
+	},
+
+	_removeListeners: function() {
+		if (this.mousemoveListener) {
+			this.graph.element.removeEventListener('mousemove', this.mousemoveListener, false);
+		}
+		if (this.mouseoutListener) {
+			this.graph.element.removeEventListener('mouseout', this.mouseoutListener, false);
+		}
 	}
 });
